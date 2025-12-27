@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Text Edit Pro</title>
+    <meta name="theme-color" content="#4a6fa5">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: #4a6fa5;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            font-size: 0.8rem;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 3px 10px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-indicator.online {
+            background-color: rgba(46, 204, 113, 0.3);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            display: flex;
+            background-color: white;
+            padding: 10px;
+            gap: 10px;
+            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .toolbar button {
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 1rem;
+            color: #555;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            min-width: 60px;
+            justify-content: center;
+        }
+
+        .toolbar button:hover, .toolbar button:active {
+            background-color: #e0e0e0;
+        }
+
+        .toolbar button:active {
+            transform: scale(0.97);
+        }
+
+        .toolbar button i {
+            font-size: 1.1rem;
+        }
+
+        .toolbar .primary {
+            background-color: #4a6fa5;
+            color: white;
+        }
+
+        .toolbar .primary:hover, .toolbar .primary:active {
+            background-color: #3d5c8a;
+        }
+
+        .text-container {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+        }
+
+        #textArea {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+            border: none;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            line-height: 1.5;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            resize: none;
+            overflow-wrap: break-word;
+        }
+
+        .stats {
+            padding: 10px 15px;
+            background-color: #e8f4fc;
+            border-bottom: 1px solid #cce0f0;
+            font-size: 0.9rem;
+            color: #2c3e50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .modal .cancel-btn {
+            background-color: #f0f0f0;
+            color: #555;
+        }
+
+        .modal .confirm-btn {
+            background-color: #4a6fa5;
+            color: white;
+        }
+
+        .file-list {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+
+        .file-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .file-name {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 70%;
+        }
+
+        .file-size {
+            font-size: 0.8rem;
+            color: #777;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #333;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            opacity: 0;
+            transition: transform 0.3s, opacity 0.3s;
+            text-align: center;
+            max-width: 90%;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background-color: #27ae60;
+        }
+
+        .toast.warning {
+            background-color: #f39c12;
+        }
+
+        .toast.error {
+            background-color: #e74c3c;
+        }
+
+        footer {
+            padding: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #777;
+            background-color: white;
+            border-top: 1px solid #eee;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .toolbar button span {
+                display: none;
+            }
+            
+            .toolbar button {
+                min-width: 50px;
+                padding: 10px;
+            }
+            
+            .toolbar button i {
+                font-size: 1.2rem;
+            }
+            
+            h1 {
+                font-size: 1.2rem;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 5px;
+                text-align: center;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-edit"></i> Text Edit Pro</h1>
+        <div class="status-indicator" id="statusIndicator">
+            <i class="fas fa-circle"></i> <span>Online</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="toolbar">
+            <button id="newBtn"><i class="fas fa-file"></i> <span>New</span></button>
+            <button id="saveBtn" class="primary"><i class="fas fa-save"></i> <span>Save</span></button>
+            <button id="openBtn"><i class="fas fa-folder-open"></i> <span>Open</span></button>
+            <button id="copyBtn"><i class="fas fa-copy"></i> <span>Copy</span></button>
+            <button id="pasteBtn"><i class="fas fa-paste"></i> <span>Paste</span></button>
+            <button id="clearBtn"><i class="fas fa-eraser"></i> <span>Clear</span></button>
+        </div>
+
+        <div class="stats" id="stats">
+            <div>Type your text below. Files save to your device's Downloads folder.</div>
+            <div id="fileStats">0 characters</div>
+        </div>
+
+        <div class="text-container">
+            <textarea id="textArea" placeholder="Start typing here..."></textarea>
+        </div>
+    </main>
+
+    <!-- Save Modal -->
+    <div class="modal" id="saveModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-save"></i> Save File</h2>
+            <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">File will be saved to your Downloads folder.</p>
+            <input type="text" id="fileNameInput" placeholder="Enter file name" value="document.txt">
+            <div class="modal-actions">
+                <button class="cancel-btn" id="cancelSaveBtn">Cancel</button>
+                <button class="confirm-btn" id="confirmSaveBtn">Save File</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Files Modal -->
+    <div class="modal" id="recentModal">
+        <div class="modal-content">
+            <h2><i class="fas fa-history"></i> Recent Files</h2>
+            <div class="file-list" id="fileList">
+                <!-- Files will be listed here -->
+            </div>
+            <div class="modal-actions">
+                <button class="cancel-btn" id="cancelRecentBtn">Close</button>
+                <button class="confirm-btn" id="openNewBtn"><i class="fas fa-folder-open"></i> Open File</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Input (hidden) -->
+    <input type="file" id="fileInput" class="hidden" accept=".txt,.text,.md,.markdown,.html,.htm,.json,.css,.js,.xml,.csv,.log">
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <footer>
+        <p>Text Edit Pro - Works offline | Files save to Downloads folder</p>
+    </footer>
+
+    <script>
+        // DOM elements
+        const textArea = document.getElementById('textArea');
+        const saveBtn = document.getElementById('saveBtn');
+        const openBtn = document.getElementById('openBtn');
+        const newBtn = document.getElementById('newBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const saveModal = document.getElementById('saveModal');
+        const recentModal = document.getElementById('recentModal');
+        const fileNameInput = document.getElementById('fileNameInput');
+        const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+        const cancelSaveBtn = document.getElementById('cancelSaveBtn');
+        const cancelRecentBtn = document.getElementById('cancelRecentBtn');
+        const openNewBtn = document.getElementById('openNewBtn');
+        const fileList = document.getElementById('fileList');
+        const fileInput = document.getElementById('fileInput');
+        const toast = document.getElementById('toast');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const fileStats = document.getElementById('fileStats');
+        const stats = document.getElementById('stats');
+
+        // Current state
+        let currentFileName = null;
+        let recentFiles = [];
+
+        // Initialize
+        function init() {
+            updateOnlineStatus();
+            loadRecentFiles();
+            updateStats();
+            
+            // Focus text area
+            textArea.focus();
+            
+            // Check for auto-saved content
+            const autoSaveData = localStorage.getItem('textEditor_autoSave');
+            if (autoSaveData) {
+                try {
+                    const parsedData = JSON.parse(autoSaveData);
+                    const shouldRestore = confirm('Auto-saved text found. Restore it?');
+                    if (shouldRestore) {
+                        textArea.value = parsedData.content;
+                        if (parsedData.fileName) {
+                            currentFileName = parsedData.fileName;
+                        }
+                        updateStats();
+                        showToast('Auto-saved text restored', 'success');
+                    }
+                } catch (e) {
+                    console.error('Error restoring auto-save:', e);
+                }
+            }
+            
+            // Start auto-save interval
+            setInterval(autoSave, 30000); // 30 seconds
+            
+            showToast('Ready to edit! Files save to Downloads folder.', 'success', 3000);
+        }
+
+        // Update online status
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                statusIndicator.innerHTML = '<i class="fas fa-circle"></i> <span>Online</span>';
+                statusIndicator.classList.add('online');
+            } else {
+                statusIndicator.innerHTML = '<i class="fas fa-circle"></i> <span>Offline</span>';
+                statusIndicator.classList.remove('online');
+            }
+        }
+
+        // Update character/word count
+        function updateStats() {
+            const text = textArea.value;
+            const chars = text.length;
+            const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+            const lines = text === '' ? 0 : text.split('\n').length;
+            
+            fileStats.textContent = `${chars} characters, ${words} words, ${lines} lines`;
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'normal', duration = 3000) {
+            toast.textContent = message;
+            toast.className = 'toast show';
+            
+            if (type === 'success') toast.classList.add('success');
+            else if (type === 'warning') toast.classList.add('warning');
+            else if (type === 'error') toast.classList.add('error');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        // Save file to Downloads
+        function saveFile() {
+            const text = textArea.value;
+            
+            if (!text.trim() && !confirm('File is empty. Save anyway?')) {
+                return;
+            }
+
+            // Get file name from user
+            const defaultName = currentFileName || `document_${new Date().getTime()}.txt`;
+            const fileName = prompt('Enter file name:', defaultName);
+            
+            if (!fileName) return; // User cancelled
+            
+            // Create blob and download link
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            
+            // Trigger download
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Clean up
+            URL.revokeObjectURL(url);
+            
+            // Update current file name and recent files
+            currentFileName = fileName;
+            addToRecentFiles(fileName, text.length);
+            
+            showToast(`Saved: ${fileName}`, 'success');
+        }
+
+        // Open file from device
+        function openFile() {
+            fileInput.click();
+        }
+
+        // Handle file selection
+        fileInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            try {
+                const text = await file.text();
+                textArea.value = text;
+                currentFileName = file.name;
+                updateStats();
+                addToRecentFiles(file.name, file.size);
+                showToast(`Opened: ${file.name}`, 'success');
+                
+                // Reset file input
+                fileInput.value = '';
+            } catch (err) {
+                console.error('Error reading file:', err);
+                showToast('Error reading file', 'error');
+                fileInput.value = '';
+            }
+        });
+
+        // Add file to recent files list
+        function addToRecentFiles(fileName, fileSize) {
+            const fileInfo = {
+                name: fileName,
+                size: fileSize,
+                date: new Date().toISOString(),
+                timestamp: Date.now()
+            };
+            
+            // Load existing recent files
+            let recent = JSON.parse(localStorage.getItem('textEditorRecentFiles') || '[]');
+            
+            // Remove if already exists
+            recent = recent.filter(f => f.name !== fileName);
+            
+            // Add to beginning
+            recent.unshift(fileInfo);
+            
+            // Keep only last 10 files
+            recent = recent.slice(0, 10);
+            
+            // Save back to localStorage
+            localStorage.setItem('textEditorRecentFiles', JSON.stringify(recent));
+            
+            // Update in-memory list
+            recentFiles = recent;
+        }
+
+        // Load recent files from localStorage
+        function loadRecentFiles() {
+            try {
+                recentFiles = JSON.parse(localStorage.getItem('textEditorRecentFiles') || '[]');
+            } catch (err) {
+                console.error('Error loading recent files:', err);
+                recentFiles = [];
+            }
+        }
+
+        // Display recent files in modal
+        function showRecentFiles() {
+            fileList.innerHTML = '';
+            
+            if (recentFiles.length === 0) {
+                fileList.innerHTML = '<div class="file-item"><em>No recent files</em></div>';
+                return;
+            }
+            
+            recentFiles.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                // Format file size
+                let sizeText = '';
+                if (file.size < 1024) {
+                    sizeText = `${file.size} bytes`;
+                } else if (file.size < 1048576) {
+                    sizeText = `${(file.size / 1024).toFixed(1)} KB`;
+                } else {
+                    sizeText = `${(file.size / 1048576).toFixed(1)} MB`;
+                }
+                
+                // Format date
+                const date = new Date(file.date);
+                const dateText = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                fileItem.innerHTML = `
+                    <div>
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${sizeText} • ${dateText}</div>
+                    </div>
+                    <div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                `;
+                
+                fileItem.addEventListener('click', () => {
+                    showToast('To open a recent file, use "Open" and select it from your device.', 'warning');
+                });
+                
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        // Auto-save current content to localStorage
+        function autoSave() {
+            if (textArea.value.trim()) {
+                const autoSaveData = {
+                    content: textArea.value,
+                    fileName: currentFileName,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('textEditor_autoSave', JSON.stringify(autoSaveData));
+            }
+        }
+
+        // Copy text to clipboard
+        async function copyText() {
+            if (!textArea.value.trim()) {
+                showToast('No text to copy', 'warning');
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(textArea.value);
+                showToast('Text copied to clipboard', 'success');
+            } catch (err) {
+                // Fallback for older browsers
+                textArea.select();
+                document.execCommand('copy');
+                window.getSelection().removeAllRanges();
+                showToast('Text copied to clipboard', 'success');
+            }
+        }
+
+        // Paste text from clipboard
+        async function pasteText() {
+            try {
+                const text = await navigator.clipboard.readText();
+                textArea.value += text;
+                updateStats();
+                showToast('Text pasted', 'success');
+            } catch (err) {
+                // Fallback for older browsers or denied permission
+                textArea.focus();
+                document.execCommand('paste');
+                updateStats();
+                showToast('Text pasted', 'success');
+            }
+        }
+
+        // Event Listeners
+        saveBtn.addEventListener('click', saveFile);
+        
+        openBtn.addEventListener('click', () => {
+            showRecentFiles();
+            recentModal.classList.add('active');
+        });
+        
+        newBtn.addEventListener('click', () => {
+            if (textArea.value.trim() && !confirm('Are you sure? Unsaved changes will be lost.')) {
+                return;
+            }
+            textArea.value = '';
+            currentFileName = null;
+            updateStats();
+            showToast('New document created', 'success');
+        });
+        
+        copyBtn.addEventListener('click', copyText);
+        
+        pasteBtn.addEventListener('click', pasteText);
+        
+        clearBtn.addEventListener('click', () => {
+            if (!textArea.value.trim()) {
+                showToast('Text area is already empty', 'warning');
+                return;
+            }
+            
+            if (confirm('Clear all text?')) {
+                textArea.value = '';
+                updateStats();
+                showToast('Text cleared', 'success');
+            }
+        });
+        
+        openNewBtn.addEventListener('click', () => {
+            recentModal.classList.remove('active');
+            setTimeout(() => openFile(), 300);
+        });
+        
+        cancelSaveBtn.addEventListener('click', () => {
+            saveModal.classList.remove('active');
+        });
+        
+        cancelRecentBtn.addEventListener('click', () => {
+            recentModal.classList.remove('active');
+        });
+
+        // Text area events
+        textArea.addEventListener('input', updateStats);
+        textArea.addEventListener('keydown', (e) => {
+            // Tab key support
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = textArea.selectionStart;
+                const end = textArea.selectionEnd;
+                textArea.value = textArea.value.substring(0, start) + '\t' + textArea.value.substring(end);
+                textArea.selectionStart = textArea.selectionEnd = start + 1;
+                updateStats();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + S to save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveBtn.click();
+            }
+            
+            // Ctrl/Cmd + O to open
+            if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                e.preventDefault();
+                openBtn.click();
+            }
+            
+            // Ctrl/Cmd + N for new
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                newBtn.click();
+            }
+            
+            // Ctrl/Cmd + C to copy
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && e.target !== textArea) {
+                e.preventDefault();
+                copyBtn.click();
+            }
+            
+            // Ctrl/Cmd + V to paste
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v' && e.target !== textArea) {
+                e.preventDefault();
+                pasteBtn.click();
+            }
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === saveModal) {
+                saveModal.classList.remove('active');
+            }
+            if (e.target === recentModal) {
+                recentModal.classList.remove('active');
+            }
+        });
+
+        // Update online status when connectivity changes
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // Initialize app
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Before unload warning
+        window.addEventListener('beforeunload', (e) => {
+            if (textArea.value.trim() && !currentFileName) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        });
+
+        // PWA Service Worker registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Simple service worker that caches the app
+                const swCode = `
+                    self.addEventListener('install', (event) => {
+                        event.waitUntil(
+                            caches.open('text-editor-v1').then((cache) => {
+                                return cache.addAll([
+                                    '/',
+                                    './?utm_source=homescreen'
+                                ]);
+                            })
+                        );
+                    });
+
+                    self.addEventListener('fetch', (event) => {
+                        event.respondWith(
+                            caches.match(event.request).then((response) => {
+                                return response || fetch(event.request);
+                            })
+                        );
+                    });
+                `;
+                
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swURL = URL.createObjectURL(blob);
+                
+                navigator.serviceWorker.register(swURL)
+                    .then(registration => {
+                        console.log('Service Worker registered');
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
